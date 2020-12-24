@@ -38,7 +38,7 @@
     (define-key map (kbd "<backtab>") 'widget-backward)
     (define-key map (kbd "RET") 'widget-button-press)
     (define-key map (kbd "<down-mouse-1>") 'widget-button-click)
-    (define-key map (kbd "g") #'lm-dashboard-refresh)
+    ;; (define-key map (kbd "g") 'lm-dashboard-refresh)
     (define-key map (kbd "q") 'quit-window)
     map)
   "Keymap for interacting with dasboard, since it will be 
@@ -155,6 +155,8 @@ and information. The buffer operates under specific keymap."
     ;; Define buffer properties
     (lm-dashboard-mode))) 
 
+;;; TODO: for some reason it works when starting,
+;;; but (list-bookmarks) doesn't work on second time
 (defun lm-dashboard-refresh ()
   (interactive)
   (when (get-buffer lm-dashboard-buffer-name)
