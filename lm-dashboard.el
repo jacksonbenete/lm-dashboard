@@ -218,7 +218,7 @@ the list as widgets creating tabs, spaces and breaklines as needed."
 ;;; TODO: image-path should be arg or defcustom
 (defun lm-dashboard-create-image-header ()
   "Create a banner on center of screen."
-  (let* ((image-path "~/.emacs.d/luna/genera-mini.png")
+  (let* ((image-path "~/.emacs.d/lm-dashboard/genera-mini.png")
 	 (image (create-image image-path))
 	 (image-dimensions (image-size image))
          (width (car image-dimensions))

@@ -1,5 +1,5 @@
 # lm-dashboard
-Lisp Machine Inspired Dashboard
+*The Lisp logo on screenshots is part of a great work of art called [the-elusive-language](https://github.com/phoe/the-elusive-language) by [Michał \"phoe\" Herda](https://phoe.github.io/)*
 
 This is a package for learning how to use Emacs Widgets.
 
@@ -13,6 +13,9 @@ The package is about 0.5 seconds slower than emacs-dashboard.
 
 The package is working but need to be refactored both for increasing
 speed and provides a cleaner code.
+It is also not resembling **Symbolics Genera** inital page, both to
+avoid writing "Symbolics Genera 8.3" which is trademarked,
+and because it's not complete yet.
 
 ## Dashboard
 This is how it's working at the moment.
