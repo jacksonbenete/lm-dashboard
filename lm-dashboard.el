@@ -127,7 +127,7 @@ Return a list of widgets."
 	     (new-widget
 	      `('link
 	       :help-echo (abbreviate-file-name ,item)
-	       :button-face 'nano-face-default
+	       :button-face 'default
 	       :notify ,widget-notify
 	       ;; if filename is too big, correct
 	       ,widget-name)))
@@ -189,7 +189,7 @@ the list as widgets creating tabs, spaces and breaklines as needed."
 	  (widget-create
 	   'link
 	   :help-echo (abbreviate-file-name item)
-	   :button-face 'nano-face-default
+	   :button-face 'default
 	   :notify `(lambda (&rest ignore) (funcall ,widget-action ,item))
 	   ;; if filename is too big, correct
 	   (if (> item-length half-size)
@@ -234,7 +234,7 @@ the list as widgets creating tabs, spaces and breaklines as needed."
   "Create a header for lm-dashboard-list-files.
 Create a variable that records the line number."
   (insert "\n\t"
-	  (propertize "R" 'face 'nano-face-strong) "ecent Files:")
+	  (propertize "R" 'face 'bold) "ecent Files:")
   (setq lm-dashboard-recent-files-linum (line-number-at-pos)))
 
 (defun lm-dashboard-recent-files-jump ()
@@ -246,7 +246,7 @@ Create a variable that records the line number."
   "Create a header for lm-dashboard-list-bookmarks.
 Create a variable that records the line number."
   (insert "\n\t"
-	  "Book" (propertize "m" 'face 'nano-face-strong) "arks:")
+	  "Book" (propertize "m" 'face 'bold) "arks:")
   (setq lm-dashboard-bookmarks-linum (line-number-at-pos)))
 
 (defun lm-dashboard-bookmarks-jump ()
