@@ -38,7 +38,9 @@
     (define-key map (kbd "<backtab>") 'widget-backward)
     (define-key map (kbd "RET") 'widget-button-press)
     (define-key map (kbd "<down-mouse-1>") 'widget-button-click)
-    ;; (define-key map (kbd "g") 'lm-dashboard-refresh)
+    (define-key map (kbd "g") 'lm-dashboard-refresh)
+    (define-key map (kbd "r") 'lm-dashboard-recent-files-jump)
+    (define-key map (kbd "m") 'lm-dashboard-bookmarks-jump)
     (define-key map (kbd "q") 'quit-window)
     map)
   "Keymap for interacting with dasboard, since it will be 
@@ -64,7 +66,7 @@ a read-only buffer.")
 (defconst lm-dashboard-buffer-name "*lm-dashboard*"
   "Define the name of buffer being called.")
 
-(defun lm-center-line (string)
+(defun lm-dashboard-center-line (string)
   "Center line according to next string size.
 The formula is to subtract half of string size from half of window size."
   (let* ((max-size (- (window-body-width) 6))
@@ -72,28 +74,100 @@ The formula is to subtract half of string size from half of window size."
     (insert (make-string (- half-size (round (/ (length string) 2.0)))
 			 ?\s))))
 
+(defun lm-dashboard-center-string (string)
+  "Insert a centered string."
+  (lm-dashboard-center-line string)
+  (insert string))
+
 (defun current-line-length ()
   "Get current line length in current buffer, including when 
 operating on hidden buffers."
   (- (line-end-position) (line-beginning-position)))
 
-(defun list-files ()
+(defun lm-dashboard-list-files ()
   "Insert a list of widgets for each recent oppened files."
-  (list-widgets recentf-list 10
+  (lm-dashboard-list-widgets recentf-list 10
 		'(lambda (el &rest ignore) (find-file-existing el))))
 
-(defun list-bookmarks ()
+(defun lm-dashboard-list-bookmarks ()
   "Insert a list of widgets for each bookmark."
   (require 'bookmark)
-  (list-widgets (bookmark-all-names) 10
+  (lm-dashboard-list-widgets (bookmark-all-names) 10
 		'(lambda (el &rest ignore) (bookmark-jump el))))
 
-(defun lm-get-items-per-line ()
+(defun lm-dashboard-get-items-per-line ()
   "If Window is big enough, list two items per line.
 Else list only one item."
-  (if (<= (window-width) 62) 1 2))
+  (if (<= (window-width) 80) 1 2))
 
-(defun list-widgets (list-to-use list-size widget-action)
+;;; Currently not in use. It's useful to keep it if the
+;;; lm-dashboard-list-widgets broke again.
+;;; The problem was not in lm-dashboard-list-widgets but on a bad naming,
+;;; list-bookmarks would work in the first time but then
+;;; calling it again would call list-bookmark on bookmark.el.
+;;; That's the importance of using <mypackage>-<function-name>.
+;;; You will never know if a function-name already exists.
+(defun lm-dashboard-create-widgets-list (list-to-use list-size widget-action)
+  "Receives a list, how many items to parse on the list and 
+a widget-action.
+Return a list of widgets."
+  (defun helper (lista list-size return-list)    
+    (if (or (null lista) (= 0 list-size))
+	return-list
+      (let* ((half-size (/ (- (window-width) 6) 2))
+	     (item (car lista))
+	     (item-length (length item))
+	     (item-name (abbreviate-file-name item))
+	     (widget-notify `(lambda (&rest ignore) (funcall ,widget-action ,item)))
+	     (widget-name (if (> item-length half-size)
+		   (concat "..."
+			   (substring ,item-name
+				      (/ item-length 4)))
+		 item-name))
+	     (new-widget
+	      `('link
+	       :help-echo (abbreviate-file-name ,item)
+	       :button-face 'nano-face-default
+	       :notify ,widget-notify
+	       ;; if filename is too big, correct
+	       ,widget-name)))
+	(helper (cdr lista)
+		(- list-size 1)
+		(cons new-widget return-list)))))
+  (helper list-to-use list-size '()))
+
+
+(defun lm-dashboard-insert-enough-spaces ()
+  "Insert enough spaces"
+  (let* ((max-size (- (window-width) 6))
+	 (half-size (/ max-size 2))
+	 (third-size (/ max-size 3))
+	 (items-per-line (lm-dashboard-get-items-per-line)))
+    (while (< (current-line-length) half-size)
+      (insert " "))))
+
+;;; Currently not in use
+(defun lm-dashboard-insert-widgets (list-to-use)
+  "For each widget on list, insert according to how many items 
+per line it should insert."
+  (defun helper (lista counter)
+    (if (null lista)
+	lista
+      (let* ((item (car lista))
+	     ;; For each widget, apply widget-create passing
+	     ;; (cdar item) which is 'link,
+	     ;; (cdr item) which is the rest of the widget.
+	     (widget (apply 'widget-create (cdar item) (cdr item)))
+	     (items-per-line (lm-dashboard-get-items-per-line))
+	     (x (if (< counter 1) items-per-line counter)))
+	(when (< counter 1) (insert "\n\t"))
+	widget
+	(lm-dashboard-insert-enough-spaces)
+	(helper (cdr lista) (- x 1)))))
+  (insert "\n\t")
+  (helper list-to-use (lm-dashboard-get-items-per-line)))
+
+(defun lm-dashboard-list-widgets (list-to-use list-size widget-action)
   "Receive a list, how many items per line, how many lines of items, 
 and an action to perform on widget as RET or click, then insert 
 the list as widgets creating tabs, spaces and breaklines as needed."
@@ -101,7 +175,7 @@ the list as widgets creating tabs, spaces and breaklines as needed."
     (let* ((max-size (- (window-width) 6))
 	   (half-size (/ max-size 2))
 	   (third-size (/ max-size 3))
-	   (items-per-line (lm-get-items-per-line))
+	   (items-per-line (lm-dashboard-get-items-per-line))
 	   (x (if (< counter 1) items-per-line counter))
 	   (item (car lista))
 	   (item-length (length item)))
@@ -121,25 +195,111 @@ the list as widgets creating tabs, spaces and breaklines as needed."
 	   (if (> item-length half-size)
 	       (concat "..."
 		       (substring (abbreviate-file-name item)
-				  (/ item-length 4)))
+				  (- (/ item-length 2))))
 	     (abbreviate-file-name item)))
 	  ;; correct indentation based on last widget size
-	  (while (< (current-line-length) half-size)
-	    (insert " "))
+	  (lm-dashboard-insert-enough-spaces)
 	  ;; compute rest of list
 	  (helper (cdr lista) (- x 1) (- list-size 1))))))
   (insert "\n\t")
-  (helper list-to-use (lm-get-items-per-line) list-size))
+  (helper list-to-use (lm-dashboard-get-items-per-line) list-size))
 
 (defun lm-dashboard-create-header ()
   "Create a header."
   (setq lm-dashboard-header-name "Symbolics Genera 8.3")
   (insert "\n")
-  (lm-center-line lm-dashboard-header-name)
+  (lm-dashboard-center-line lm-dashboard-header-name)
   (insert (propertize
 	   lm-dashboard-header-name
 	   ;; 'face '(:family "LispM")
 	   ))
+  (insert "\n\n"))
+
+;;; TODO: image-path should be arg or defcustom
+(defun lm-dashboard-create-image-header ()
+  "Create a banner on center of screen."
+  (let* ((image-path "~/.emacs.d/luna/genera-mini.png")
+	 (image (create-image image-path))
+	 (image-dimensions (image-size image))
+         (width (car image-dimensions))
+         (height (cdr image-dimensions))
+	 (max-size (- (window-body-width) 6))
+	 (half-size (/ max-size 2)))
+    (insert "\n")
+    (insert (make-string (- half-size (round (/ width 2.0)))
+			 ?\s))
+    (insert-image image)))
+
+(defun lm-dashboard-recent-files-header ()
+  "Create a header for lm-dashboard-list-files.
+Create a variable that records the line number."
+  (insert "\n\t"
+	  (propertize "R" 'face 'nano-face-strong) "ecent Files:")
+  (setq lm-dashboard-recent-files-linum (line-number-at-pos)))
+
+(defun lm-dashboard-recent-files-jump ()
+  (interactive)
+  (goto-line lm-dashboard-recent-files-linum)
+  (widget-forward 1))
+
+(defun lm-dashboard-bookmarks-header ()
+  "Create a header for lm-dashboard-list-bookmarks.
+Create a variable that records the line number."
+  (insert "\n\t"
+	  "Book" (propertize "m" 'face 'nano-face-strong) "arks:")
+  (setq lm-dashboard-bookmarks-linum (line-number-at-pos)))
+
+(defun lm-dashboard-bookmarks-jump ()
+  (interactive)
+  (goto-line lm-dashboard-bookmarks-linum)
+  (widget-forward 1))
+
+(defun lm-dashboard-init-info ()
+    "This function was extracted from emacs-dashboard.
+Print the init-info."
+  (let ((package-count 0) (time (emacs-init-time)))
+    (when (bound-and-true-p package-alist)
+      (setq package-count (length package-activated-list)))
+    (when (boundp 'straight--profile-cache)
+      (setq package-count (+ (hash-table-size straight--profile-cache) package-count)))
+    (if (zerop package-count)
+        (format "Startup time: %s" time)
+      (format "Using %d packages\tLoaded in: %s" package-count time))))
+
+(defun lm-dashboard-post-header ()
+  ""
+  (insert "\n\n")
+  (let ((login (with-temp-buffer
+		  (progn
+		    (insert "You're logged in as "
+			    (user-login-name) "@"
+			    (system-name))
+		    (buffer-string))))
+	(version (with-temp-buffer
+			 (progn
+			   (insert "Emacs version " emacs-version)
+			   (buffer-string))))
+	(process (with-temp-buffer
+		   (progn
+		     (insert "You're using "
+			     invocation-name
+			     " under PID "
+			     (number-to-string (emacs-pid))
+			     " on "
+			     (symbol-name system-type))
+		     (buffer-string))))
+	;; (init-info (with-temp-buffer
+	;; 	     (progn
+	;; 	       (lm-dashboard-init-info)
+	;; 	       (buffer-string))))
+	)
+    (lm-dashboard-center-string login)
+    (insert "\n\n")
+    (lm-dashboard-center-string version)
+    (insert "\n")
+    (lm-dashboard-center-string process)
+    (insert "\n")
+    (lm-dashboard-center-string (lm-dashboard-init-info)))
   (insert "\n\n"))
 
 (defun lm-dashboard-create ()
@@ -148,16 +308,19 @@ and information. The buffer operates under specific keymap."
   (with-current-buffer
       lm-dashboard-buffer-name
     ;; Create dashboard
-    (lm-dashboard-create-header)
-    (list-files)
+    (lm-dashboard-create-image-header)
+    (lm-dashboard-post-header)
+    (lm-dashboard-recent-files-header)
+    (lm-dashboard-list-files)
     (insert "\n\n")
-    (list-bookmarks)
+    (lm-dashboard-bookmarks-header)
+    (lm-dashboard-list-bookmarks)
     ;; Define buffer properties
-    (lm-dashboard-mode))) 
+    (lm-dashboard-mode)
+    (goto-line 0)))
 
-;;; TODO: for some reason it works when starting,
-;;; but (list-bookmarks) doesn't work on second time
 (defun lm-dashboard-refresh ()
+  "Create or reload lm-dashboard for latest changes on widget lists."
   (interactive)
   (when (get-buffer lm-dashboard-buffer-name)
     (kill-buffer lm-dashboard-buffer-name))
@@ -165,8 +328,7 @@ and information. The buffer operates under specific keymap."
   (goto-char (point-min))
   (redisplay)
   (run-hooks 'lm-dashboard-after-initialize-hook)
-  (lm-dashboard-create)
-  )
+  (lm-dashboard-create))
 
 ;;;###autoload
 (defun lm-dashboard-startup-hook ()
@@ -177,10 +339,19 @@ and information. The buffer operates under specific keymap."
      ;; 'emacs-startup-hook
      'window-setup-hook
 	      '(lambda ()
-		 (lm-dashboard-refresh))))
-  ;; (add-hook 'window-size-hook
-  ;; 	    (if (= (buffer-name) lm-dashboard-buffer-name)
-  ;; 		(lm-dashboard-refresh)))
-  )
+		 (progn
+		   (add-hook 'window-size-change-functions 'lm-dashboard-resize)
+		   (lm-dashboard-refresh))))))
+
+;;; TODO: why did this work only that way?
+(defun lm-dashboard-resize (&optional _)
+  "Refresh lm-dashboard when window size changes."
+  ;; That's whas copy from emacs-dashboard (dashboard-resize-on-hook).
+  (let ((space-win (get-buffer-window lm-dashboard-buffer-name))
+        (frame-win (frame-selected-window)))
+    (when (and space-win
+               (not (window-minibuffer-p frame-win)))
+      (with-selected-window space-win
+        (lm-dashboard-refresh)))))
 
 (provide 'lm-dashboard)
