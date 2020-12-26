@@ -37,6 +37,9 @@ if the screen is too small it will show only one column of files.
 
 ![halfscreen][2]
 
+When the filename/path is too big, you can still see the full name
+by selecting the item or passing the mouse over.
+
 ## Instalation
 
 Clone the package to your `.emacs.d/` and require the package.
