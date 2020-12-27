@@ -68,9 +68,10 @@ initial page.
 
 
 ## Acknowledgment
-*The Lisp logo on screenshots is part of a great work of art called
+
+The Lisp logo on screenshots is part of a great work of art called
 [The Elusive Language](https://github.com/phoe/the-elusive-language)
-by [Michał \"phoe\" Herda](https://phoe.github.io/)*
+by [Michał \"phoe\" Herda](https://phoe.github.io/). It's licensed under BY-SA.
 
 
 [1]: ./screenshots/lm-dashboard-full-screen.png
